@@ -110,9 +110,10 @@ namespace ShopAtHome.DapperORMCore
             }
             var name = SqlMapperExtensions.GetTableName(typeof(TData));
 
-            // TODO: this no-locks by default... Something to be aware of if ever we need to read only committed data
-            var sql = "select * from " + SqlMapperExtensions.EncaseWithSquareBrackets(name) + " with (nolock) where " + SqlMapperExtensions.TransformToSQL(predicate);
-            return ExecuteSQLQuery<TData>(connection, sql);
+            var query = SQLExpressionVisitor.GetQuery(predicate);
+            // this no-locks by default... Something to be aware of if ever we need to read only committed data
+            var sql = "select * from " + SqlMapperExtensions.EncaseWithSquareBrackets(name) + " with (nolock) where " + query.GetParameterizedSQLString();
+            return ExecuteSQLQuery<TData>(connection, sql, query.GetParameterizedSQLArgs());
         }
 
         #endregion

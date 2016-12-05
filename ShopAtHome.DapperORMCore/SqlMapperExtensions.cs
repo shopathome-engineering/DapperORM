@@ -474,17 +474,6 @@ namespace ShopAtHome.DapperORMCore
                 typeBuilder.DefineMethodOverride(currSetPropMthdBldr, setMethod);
             }
         }
-
-        /// <summary>
-        /// TODO: Parameterize queries
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="predicate"></param>
-        /// <returns></returns>
-        public static string TransformToSQL<T>(Expression<Func<T, bool>> predicate)
-        {
-            return SQLExpressionVisitor.GetQuery(predicate.Body);
-        }
     }
 
     [AttributeUsage(AttributeTargets.Property)]

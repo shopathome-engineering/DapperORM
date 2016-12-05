@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq.Expressions;
-using System.Reflection;
+using FluentAssertions;
 
 namespace ShopAtHome.DapperORMCore.Tests
 {
@@ -23,7 +23,10 @@ namespace ShopAtHome.DapperORMCore.Tests
         {
             Expression<Func<TestClass, bool>> expression = t => t.Foo == "Foo";
             var result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Bar] = 'Foo'", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Bar] = @Bar");
+            dynamic args = result.GetParameterizedSQLArgs();
+            // runtime binding fails on the dynamic property with FluentAssertions so we're stuck with the built-in asserts
+            Assert.IsTrue(string.Equals(args.Bar, "Foo"));
         }
 
         [TestMethod]
@@ -31,7 +34,9 @@ namespace ShopAtHome.DapperORMCore.Tests
         {
             Expression<Func<TestClass, bool>> expression = t => t.Foo != "Foo";
             var result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Bar] <> 'Foo'", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Bar] <> @Bar");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.IsTrue(string.Equals(args.Bar, "Foo"));
         }
 
         [TestMethod]
@@ -39,11 +44,18 @@ namespace ShopAtHome.DapperORMCore.Tests
         {
             Expression<Func<TestClass, bool>> expression = t => t.Foo != "Foo" && t.Zowie;
             var result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Bar] <> 'Foo' AND [Zowie] = 1", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Bar] <> @Bar AND [Zowie] = @Zowie");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.IsTrue(string.Equals(args.Bar, "Foo"));
+            Assert.AreEqual(args.Zowie, true);
+
 
             expression = t => t.Foo != "Foo" && !t.Zowie;
             result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Bar] <> 'Foo' AND [Zowie] <> 1", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Bar] <> @Bar AND [Zowie] = @Zowie");
+            args = result.GetParameterizedSQLArgs();
+            Assert.IsTrue(string.Equals(args.Bar, "Foo"));
+            Assert.AreEqual(args.Zowie, false);
         }
 
         [TestMethod]
@@ -52,7 +64,9 @@ namespace ShopAtHome.DapperORMCore.Tests
             var s = "Foo";
             Expression<Func<TestClass, bool>> expression = t => t.Foo == s;
             var result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Bar] = 'Foo'", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Bar] = @Bar");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.IsTrue(string.Equals(args.Bar, "Foo"));
         }
 
         [TestMethod]
@@ -60,7 +74,9 @@ namespace ShopAtHome.DapperORMCore.Tests
         {
             Expression<Func<TestClass, bool>> expression = t => t.Foo == this.St;
             var result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Bar] = 'Foo'", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Bar] = @Bar");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.IsTrue(string.Equals(args.Bar, "Foo"));
         }
 
         [TestMethod]
@@ -68,7 +84,9 @@ namespace ShopAtHome.DapperORMCore.Tests
         {
             Expression<Func<TestClass, bool>> expression = t => t.Zing == 42;
             var result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Zing] = 42", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Zing] = @Zing");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.AreEqual(args.Zing, 42);
         }
 
         [TestMethod]
@@ -76,10 +94,15 @@ namespace ShopAtHome.DapperORMCore.Tests
         {
             Expression<Func<TestClass, bool>> expression = t => t.Zowie == true;
             var result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Zowie] = 1", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Zowie] = @Zowie");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.AreEqual(args.Zowie, true);
+
             expression = t => t.Zowie == false;
             result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Zowie] = 0", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Zowie] = @Zowie");
+            args = result.GetParameterizedSQLArgs();
+            Assert.AreEqual(args.Zowie, false);
         }
 
         [TestMethod]
@@ -87,11 +110,15 @@ namespace ShopAtHome.DapperORMCore.Tests
         {
             Expression<Func<TestClass, bool>> expression = t => t.Zowie;
             var result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Zowie] = 1", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Zowie] = @Zowie");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.AreEqual(args.Zowie, true);
 
             expression = t => !t.Zowie;
             result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Zowie] <> 1", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Zowie] = @Zowie");
+            args = result.GetParameterizedSQLArgs();
+            Assert.AreEqual(args.Zowie, false);
         }
 
         [TestMethod]
@@ -99,7 +126,10 @@ namespace ShopAtHome.DapperORMCore.Tests
         {
             Expression<Func<TestClass, bool>> expression = t => t.Foo == "Foo" && t.FooTwo == "Fizzle";
             var result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Bar] = 'Foo' AND [FooTwo] = 'Fizzle'", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Bar] = @Bar AND [FooTwo] = @FooTwo");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.IsTrue(string.Equals(args.Bar, "Foo"));
+            Assert.IsTrue(string.Equals(args.FooTwo, "Fizzle"));
         }
 
         [TestMethod]
@@ -107,7 +137,10 @@ namespace ShopAtHome.DapperORMCore.Tests
         {
             Expression<Func<TestClass, bool>> expression = t => t.Foo == "Foo" || t.FooTwo == "Fizzle";
             var result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Bar] = 'Foo' OR [FooTwo] = 'Fizzle'", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Bar] = @Bar OR [FooTwo] = @FooTwo");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.IsTrue(string.Equals(args.Bar, "Foo"));
+            Assert.IsTrue(string.Equals(args.FooTwo, "Fizzle"));
         }
 
         [TestMethod]
@@ -115,7 +148,11 @@ namespace ShopAtHome.DapperORMCore.Tests
         {
             Expression<Func<TestClass, bool>> expression = t => t.Foo == "Foo" && t.FooTwo == "Fizzle" && t.Zing == 1;
             var result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals("[Bar] = 'Foo' AND [FooTwo] = 'Fizzle' AND [Zing] = 1", StringComparison.OrdinalIgnoreCase));
+            result.GetParameterizedSQLString().Should().Be("[Bar] = @Bar AND [FooTwo] = @FooTwo AND [Zing] = @Zing");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.IsTrue(string.Equals(args.Bar, "Foo"));
+            Assert.IsTrue(string.Equals(args.FooTwo, "Fizzle"));
+            Assert.AreEqual(args.Zing, 1);
         }
 
         [TestMethod]
@@ -124,7 +161,9 @@ namespace ShopAtHome.DapperORMCore.Tests
             DateTime now = DateTime.Now;
             Expression<Func<TestClass, bool>> expression = t => t.WhenItHappened <= now;
             var result = SQLExpressionVisitor.GetQuery(expression);
-            Assert.IsTrue(result.Equals($"[WhenItHappened] <= '{now}'"));
+            result.GetParameterizedSQLString().Should().Be("[WhenItHappened] <= @WhenItHappened");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.AreEqual(args.WhenItHappened, now);
         }
 
         [TestMethod]
@@ -132,21 +171,55 @@ namespace ShopAtHome.DapperORMCore.Tests
         {
             Expression<Func<TestClass, bool>> expression = t => t.MyEnumColumn == TestEnum.Bar;
             var result = SQLExpressionVisitor.GetQuery(expression.Body);
-            Assert.IsTrue(result.Equals("[MyEnumColumn] = 2"));
+            result.GetParameterizedSQLString().Should().Be("[MyEnumColumn] = @MyEnumColumn");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.AreEqual(args.MyEnumColumn, (int)TestEnum.Bar);
         }
 
         [TestMethod]
         public void QueryingOnEnumValue_WithAdditionalLogical_GeneratesCorrectSQL()
         {
             var temp = TestEnum.Foo;
-            var result = SqlMapperExtensions.TransformToSQL<TestClass>(t => t.Id == 24 && t.MyEnumColumn == temp);
-            Assert.IsTrue(result.Equals("[Id] = 24 AND [MyEnumColumn] = 1"));
+            Expression<Func<TestClass, bool>> exp = t => t.Id == 24 && t.MyEnumColumn == temp;
+            var result = SQLExpressionVisitor.GetQuery(exp);
+
+            result.GetParameterizedSQLString().Should().Be("[Id] = @Id AND [MyEnumColumn] = @MyEnumColumn");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.AreEqual(args.Id, 24);
+            Assert.AreEqual(args.MyEnumColumn, temp);
         }
 
-        public static string GetDebugView(Expression exp)
+        [TestMethod]
+        public void ChainedExpressionWithMixOfAndsAndOrs_GeneratesCorrectSQL()
         {
-            var propertyInfo = typeof(Expression).GetProperty("DebugView", BindingFlags.Instance | BindingFlags.NonPublic);
-            return propertyInfo.GetValue(exp) as string;
+            Expression<Func<TestClass, bool>> exp = t => t.Id == 24 && t.MyEnumColumn == TestEnum.Foo || t.Foo != "Foo" && t.FooTwo == "Fizzle" || t.Zing > 42;
+            var result = SQLExpressionVisitor.GetQuery(exp);
+
+            result.GetParameterizedSQLString().Should().Be("[Id] = @Id AND [MyEnumColumn] = @MyEnumColumn OR [Bar] <> @Bar AND [FooTwo] = @FooTwo OR [Zing] > @Zing");
+            dynamic args = result.GetParameterizedSQLArgs();
+            Assert.AreEqual(args.Id, 24);
+            Assert.AreEqual(args.MyEnumColumn, 1);
+            Assert.AreEqual(args.Bar, "Foo");
+            Assert.AreEqual(args.FooTwo, "Fizzle");
+            Assert.AreEqual(args.Zing, 42);
+        }
+
+        [TestMethod]
+        public void BreakBinaryExpression_GivenComplexQueryChain_GeneratesExpectedValues()
+        {
+            Expression<Func<TestClass, bool>> exp = t => t.Id == 24 && t.MyEnumColumn == TestEnum.Foo || t.Foo != "Foo" && t.FooTwo == "Fizzle" || t.Zing > 42;
+            var results = SQLExpressionVisitor.BreakBinaryExpression(exp);
+            var aResults = results.ToArray();
+            aResults[0].Expression.NodeType.Should().Be(ExpressionType.Equal);
+            aResults[0].FollowingOperator.Should().Be("AND");
+            aResults[1].Expression.NodeType.Should().Be(ExpressionType.Equal);
+            aResults[1].FollowingOperator.Should().Be("OR");
+            aResults[2].Expression.NodeType.Should().Be(ExpressionType.NotEqual);
+            aResults[2].FollowingOperator.Should().Be("AND");
+            aResults[3].Expression.NodeType.Should().Be(ExpressionType.Equal);
+            aResults[3].FollowingOperator.Should().Be("OR");
+            aResults[4].Expression.NodeType.Should().Be(ExpressionType.GreaterThan);
+            aResults[4].FollowingOperator.Should().BeNull();
         }
     }
 

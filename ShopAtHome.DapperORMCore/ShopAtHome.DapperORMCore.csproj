@@ -57,6 +57,9 @@
     <Compile Include="SQLExpressionVisitor.cs" />
     <Compile Include="SqlMapperExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SQLPredicateComponent.cs" />
+    <Compile Include="SQLQuery.cs" />
+    <Compile Include="SQLQueryPredicate.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
